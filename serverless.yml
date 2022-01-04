@@ -1,0 +1,42 @@
+service: user-service
+
+frameworkVersion: ">=1.1.0 <2.71.0"
+custom:
+  stage: ${opt:stage, self:provider.stage}
+  tableName: ${self:custom.stage}-users
+provider:
+  name: aws
+  runtime: nodejs14.x
+  stage: development
+  region: us-east-1
+  environment:
+    USERS_TABLE: ${self:custom.tableName}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+      Resource: "*"
+resources:
+  - ${file(resources/dynamodb-table.yml)}
+
+functions:
+  userSubmission:
+    handler: api/createUser.submit
+    memorySize: 128
+    description: Submit user information into db.
+    events:
+      - http: 
+          path: users
+          method: post
+  userFetch:
+    handler: api/getUser.getUser
+    memorySize: 128
+    description: fetch user from db.
+    events:
+      - http: 
+          path: users/{id}
+          method: get
+          cors: true
